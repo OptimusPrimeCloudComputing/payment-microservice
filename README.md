@@ -1,4 +1,4 @@
-# Payment Service API Docs
+# Payment Microservice API Docs
 
 This project serves the OpenAPI specification for the **Payment Microservice** using Swagger UI.
 
