@@ -1,0 +1,237 @@
+openapi: 3.0.4
+info:
+  title: Payment Service
+  version: 1.0.0
+  description: |
+    API-first Payment microservice. Initiates payments, exposes status,
+    receives provider webhooks, and supports refunds.
+
+servers:
+  - url: http://localhost:4003
+    description: Local dev
+
+tags:
+  - name: Payments
+
+paths:
+  /payments/initiate:
+    post:
+      tags: [Payments]
+      summary: Start a payment
+      description: Creates a payment intent and returns a client redirect/link or token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentInitiateRequest"
+            example:
+              orderId: "ord_123"
+              amount: 4999
+              currency: "USD"
+              method: "CARD"
+              returnUrl: "https://shop.example.com/checkout/return"
+              metadata: { userId: "u_42" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentInitiateResponse"
+              example:
+                paymentId: "pay_abc"
+                status: "INITIATED"
+                amount: 4999
+                currency: "USD"
+                method: "CARD"
+                redirectUrl: "https://fakepay.test/redirect/xyz"
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /payments/{payment_id}:
+    get:
+      tags: [Payments]
+      summary: Payment status
+      parameters:
+        - $ref: "#/components/parameters/PaymentId"
+      responses:
+        "200":
+          description: Current status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Payment" }
+              example:
+                paymentId: "pay_abc"
+                orderId: "ord_123"
+                status: "SUCCESS"
+                amount: 4999
+                currency: "USD"
+                method: "CARD"
+                transactionRef: "tx_777"
+                createdAt: "2025-10-02T20:00:00Z"
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /payments/webhook:
+    post:
+      tags: [Payments]
+      summary: Provider callback webhook
+      description: |
+        Endpoint the external provider calls to confirm success/failure/refund.
+        For the assignment you can simulate this manually with curl.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProviderEvent" }
+            example:
+              event: "payment.succeeded"
+              paymentId: "pay_abc"
+              transactionRef: "tx_777"
+              amount: 4999
+              signature: "hmac..."
+      responses:
+        "200":
+          description: Acknowledge receipt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { received: { type: boolean } }
+              example: { received: true }
+
+  /payments/refund:
+    post:
+      tags: [Payments]
+      summary: Refund an order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RefundRequest" }
+            example:
+              paymentId: "pay_abc"
+              reason: "CUSTOMER_REQUEST"
+              amount: 4999
+      responses:
+        "202":
+          description: Refund accepted (async)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RefundResponse" }
+              example:
+                refundId: "rf_123"
+                paymentId: "pay_abc"
+                status: "PENDING"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+components:
+  parameters:
+    PaymentId:
+      name: payment_id
+      in: path
+      required: true
+      schema: { type: string }
+
+  schemas:
+    Money:
+      type: integer
+      description: Amount in the smallest unit (cents).
+      minimum: 0
+
+    PaymentMethod:
+      type: string
+      enum: [CARD, UPI, PAYPAL]
+
+    PaymentStatus:
+      type: string
+      enum: [INITIATED, SUCCESS, FAILED, REFUNDED]
+
+    Payment:
+      type: object
+      required: [paymentId, status, amount, currency, method, createdAt]
+      properties:
+        paymentId: { type: string }
+        orderId: { type: string }
+        status: { $ref: "#/components/schemas/PaymentStatus" }
+        amount: { $ref: "#/components/schemas/Money" }
+        currency: { type: string, example: USD }
+        method: { $ref: "#/components/schemas/PaymentMethod" }
+        transactionRef: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    PaymentInitiateRequest:
+      type: object
+      required: [orderId, amount, currency, method, returnUrl]
+      properties:
+        orderId: { type: string }
+        amount: { $ref: "#/components/schemas/Money" }
+        currency: { type: string }
+        method: { $ref: "#/components/schemas/PaymentMethod" }
+        returnUrl: { type: string, format: uri }
+        metadata:
+          type: object
+          additionalProperties: { type: string }
+
+    PaymentInitiateResponse:
+      allOf:
+        - $ref: "#/components/schemas/Payment"
+        - type: object
+          properties:
+            redirectUrl: { type: string, format: uri, nullable: true }
+
+    ProviderEvent:
+      type: object
+      required: [event, paymentId]
+      properties:
+        event:
+          type: string
+          enum:
+            - payment.succeeded
+            - payment.failed
+            - refund.succeeded
+            - refund.failed
+        paymentId: { type: string }
+        transactionRef: { type: string, nullable: true }
+        amount: { $ref: "#/components/schemas/Money" }
+        signature: { type: string }
+
+    RefundRequest:
+      type: object
+      required: [paymentId]
+      properties:
+        paymentId: { type: string }
+        reason:
+          type: string
+          enum: [CUSTOMER_REQUEST, FRAUD_SUSPECTED, OTHER]
+        amount:
+          $ref: "#/components/schemas/Money"
+          description: If omitted, full amount is refunded.
+
+    RefundResponse:
+      type: object
+      required: [refundId, paymentId, status]
+      properties:
+        refundId: { type: string }
+        paymentId: { type: string }
+        status:
+          type: string
+          enum: [PENDING, SUCCESS, FAILED]
+
+  responses:
+    BadRequest:
+      description: Invalid input
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: { type: string }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: { type: string }
