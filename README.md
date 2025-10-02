@@ -1,6 +1,6 @@
 # Payment Service API Docs
 
-This project serves the OpenAPI specification for the **Payment Service** using Swagger UI.
+This project serves the OpenAPI specification for the **Payment Microservice** using Swagger UI.
 
 ## Setup
 
@@ -41,7 +41,7 @@ npm run dev
 ## Project Structure
 
 ```
-PAYMENT-SERVICE/
+Payment-Service/
   ├── server.js          # Express app serving Swagger UI
   ├── package.json       # Project dependencies and scripts
   ├── openapi/
