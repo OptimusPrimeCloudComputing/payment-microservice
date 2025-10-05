@@ -77,7 +77,6 @@ paths:
       summary: Provider callback webhook
       description: |
         Endpoint the external provider calls to confirm success/failure/refund.
-        For the assignment you can simulate this manually with curl.
       requestBody:
         required: true
         content:
