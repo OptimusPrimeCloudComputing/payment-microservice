@@ -11,6 +11,8 @@ It is designed to follow the **API-First** approach with an OpenAPI 3.0 specific
 - **Payment Status**: Retrieve the status of a payment by ID.
 - **Webhook Handling**: Accept callbacks from external payment providers.
 - **Refunds**: Trigger refunds for existing payments.
+- **PATCH / DELETE (Demo Stubs)**: Simulated update and delete endpoints to align with sprint requirements.
+  These do not modify real provider data — they simply acknowledge or log demo requests.
 
 ---
 
@@ -75,12 +77,14 @@ Swagger UI: [http://localhost:4003/api-docs](http://localhost:4003/api-docs)
 
 #### Payments
 
-| Method   | Endpoint                 | Description                                                |
-| -------- | ------------------------ | ---------------------------------------------------------- |
-| **POST** | `/payments/initiate`     | Initiate a new payment (returns payment ID + redirect URL) |
-| **GET**  | `/payments/{payment_id}` | Get payment status/details                                 |
-| **POST** | `/payments/webhook`      | Webhook callback from external payment provider            |
-| **POST** | `/payments/refund`       | Trigger a refund for a completed payment                   |
+| Method     | Endpoint                        | Description                                                            |
+| ---------- | ------------------------------- | ---------------------------------------------------------------------- |
+| **POST**   | `/payments/initiate`            | Initiate a new payment (returns payment ID + redirect URL)             |
+| **GET**    | `/payments/{payment_id}`        | Get payment status/details                                             |
+| **POST**   | `/payments/webhook`             | Webhook callback from external payment provider                        |
+| **POST**   | `/payments/refund/{payment_id}` | Trigger a refund for a specific payment                                |
+| **PATCH**  | `/payments/{payment_id}`        | _(Demo only)_ Simulate partial update (e.g., metadata or client notes) |
+| **DELETE** | `/payments/{payment_id}`        | _(Demo only)_ Simulate deletion/cancellation request for a payment     |
 
 ---
 

@@ -71,6 +71,68 @@ paths:
                 createdAt: "2025-10-02T20:00:00Z"
         "404": { $ref: "#/components/responses/NotFound" }
 
+    patch:
+      tags: [Payments]
+      summary: (Stub) Partially update a payment
+      description: |
+        **Demo-only stub.** Since an external provider owns payment records,
+        this endpoint *simulates* a partial update by forwarding metadata updates
+        to the provider when supported, or storing a transient note for audit/demo.
+        Business-critical fields (amount, status) are **not** mutated here.
+      parameters:
+        - $ref: "#/components/parameters/PaymentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PaymentPatchRequest" }
+            example:
+              metadata: { customerNote: "Please ship ASAP" }
+              clientNote: "Updated shipping note"
+      responses:
+        "202":
+          description: Accepted (forwarded to provider / recorded for demo)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paymentId: { type: string }
+                  accepted: { type: boolean }
+                  message: { type: string }
+              example:
+                paymentId: "pay_abc"
+                accepted: true
+                message: "Metadata update forwarded/recorded"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+    delete:
+      tags: [Payments]
+      summary: (Stub) Cancel/Delete a payment
+      description: |
+        **Demo-only stub.** Real deletion is provider-owned. This endpoint
+        *simulates* a cancellation by calling the provider's cancel/delete API
+        when available (e.g., voiding an intent) or marking a local audit entry.
+      parameters:
+        - $ref: "#/components/parameters/PaymentId"
+      responses:
+        "202":
+          description: Cancellation accepted (async via provider/webhook)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paymentId: { type: string }
+                  accepted: { type: boolean }
+                  providerAction: { type: string, example: "void_intent" }
+              example:
+                paymentId: "pay_abc"
+                accepted: true
+                providerAction: "void_intent"
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /payments/webhook:
     post:
       tags: [Payments]
@@ -98,31 +160,43 @@ paths:
                 properties: { received: { type: boolean } }
               example: { received: true }
 
-  /payments/refund:
+  /payments/refund/{payment_id}:
     post:
       tags: [Payments]
       summary: Refund an order
+      description: |
+        Initiates a refund for the specified payment ID. Amount is optional;
+        defaults to the original payment amount.
+      parameters:
+        - $ref: "#/components/parameters/PaymentId"
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/RefundRequest" }
+            schema:
+              type: object
+              properties:
+                amount:
+                  $ref: "#/components/schemas/Money"
             example:
-              paymentId: "pay_abc"
-              reason: "CUSTOMER_REQUEST"
               amount: 4999
       responses:
         "202":
           description: Refund accepted (async)
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/RefundResponse" }
-              example:
-                refundId: "rf_123"
-                paymentId: "pay_abc"
-                status: "PENDING"
-        "400": { $ref: "#/components/responses/BadRequest" }
+              schema:
+                type: object
+                properties:
+                  refundId: { type: string }
+                  paymentId: { type: string }
+                  amount: { $ref: "#/components/schemas/Money" }
+                  status:
+                    type: string
+                    enum: [PENDING]
+                  message: { type: string }
         "404": { $ref: "#/components/responses/NotFound" }
+        "400": { $ref: "#/components/responses/BadRequest" }
 
 components:
   parameters:
@@ -178,6 +252,19 @@ components:
         - type: object
           properties:
             redirectUrl: { type: string, format: uri, nullable: true }
+
+    PaymentPatchRequest:
+      type: object
+      description: |
+        Fields allowed for partial updates (demo-only). Real status/amount
+        changes occur via provider + webhook, not here.
+      properties:
+        metadata:
+          type: object
+          additionalProperties: { type: string }
+        clientNote:
+          type: string
+          description: Free-form note recorded for audit/demo.
 
     ProviderEvent:
       type: object
