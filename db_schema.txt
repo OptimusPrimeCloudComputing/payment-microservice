@@ -70,3 +70,33 @@ Indexes:
 # - For SQL implementations (e.g., PostgreSQL), map JSONB accordingly.
 # - This schema is designed so the current in-memory model in server.js
 #   can be persisted with minimal changes.
+
+
+============================================================
+SEED DATA EXAMPLES
+============================================================
+
+-- payments (example rows)
+-- Columns: id, order_id, status, amount_cents, currency, method,
+--          transaction_ref, created_at, client_note, metadata_json
+
+pay_demo_1 | ord_1001 | INITIATED | 4999  | USD | CARD   | NULL     | 2025-10-02T20:00:00Z | NULL                     | {"userId": "u_42", "cartId": "c_123"}
+pay_demo_2 | ord_1002 | SUCCESS   | 12999 | USD | PAYPAL | tx_777   | 2025-10-03T14:30:00Z | "VIP customer, handle with care" | {"userId": "u_77"}
+pay_demo_3 | ord_1003 | FAILED    | 2599  | USD | CARD   | tx_888   | 2025-10-04T09:15:00Z | NULL                     | {"userId": "u_15", "failureReason": "card_declined"}
+pay_demo_4 | ord_1004 | REFUNDED  | 7999  | USD | CARD   | tx_999   | 2025-10-05T18:45:00Z | "Customer requested refund" | {"userId": "u_99"}
+
+
+-- refunds (example rows)
+-- Columns: id, payment_id, amount_cents, status, reason,
+--          requested_at, processed_at
+
+rf_demo_1 | pay_demo_4 | 7999 | SUCCESS | CUSTOMER_REQUEST  | 2025-10-06T10:00:00Z | 2025-10-06T10:05:00Z
+rf_demo_2 | pay_demo_2 | 4999 | PENDING | OTHER             | 2025-10-07T12:20:00Z | NULL
+
+
+-- webhook_events (example rows)
+-- Columns: id, event_type, payment_id, payload_json, received_at, signature
+
+1 | payment.succeeded | pay_demo_2 | {"event": "payment.succeeded", "paymentId": "pay_demo_2", "transactionRef": "tx_777", "amount": 12999} | 2025-10-03T14:30:05Z | "hmac_demo_sig_1"
+2 | refund.succeeded  | pay_demo_4 | {"event": "refund.succeeded",  "paymentId": "pay_demo_4", "amount": 7999}                                   | 2025-10-06T10:05:05Z | "hmac_demo_sig_2"
+
