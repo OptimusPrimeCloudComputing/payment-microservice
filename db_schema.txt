@@ -1,0 +1,72 @@
+# Payment Microservice - Database Schema
+# Logical relational model based on server.js + OpenAPI
+# This file is documentation, not executable SQL.
+
+============================================================
+TABLE: payments
+============================================================
+Description: Stores payment intents and their lifecycle state.
+
+Columns:
+  id                  PK, VARCHAR(64)         -- internal primary key (payment_id)
+  order_id            VARCHAR(64) NOT NULL    -- external order reference
+  status              VARCHAR(20) NOT NULL    -- INITIATED | SUCCESS | FAILED | REFUNDED | REFUND_PENDING
+  amount_cents        BIGINT NOT NULL         -- smallest unit (e.g., cents)
+  currency            VARCHAR(3) NOT NULL     -- ISO currency code, e.g. 'USD'
+  method              VARCHAR(20) NOT NULL    -- CARD | UPI | PAYPAL
+  transaction_ref     VARCHAR(128) NULL       -- provider transaction id
+  created_at          TIMESTAMP NOT NULL      -- creation time (UTC)
+  client_note         TEXT NULL               -- free-form client/audit note
+  metadata_json       JSONB NULL              -- arbitrary key/value metadata
+
+Indexes:
+  IDX_payments_order_id         (order_id)
+  IDX_payments_status           (status)
+  IDX_payments_created_at       (created_at)
+
+
+============================================================
+TABLE: refunds
+============================================================
+Description: Stores refund requests linked to payments.
+
+Columns:
+  id                  PK, VARCHAR(64)         -- internal refund identifier (refundId)
+  payment_id          FK, VARCHAR(64) NOT NULL
+                         REFERENCES payments(id)
+  amount_cents        BIGINT NOT NULL         -- refunded amount in smallest unit
+  status              VARCHAR(20) NOT NULL    -- PENDING | SUCCESS | FAILED
+  reason              VARCHAR(50) NULL        -- CUSTOMER_REQUEST | FRAUD_SUSPECTED | OTHER
+  requested_at        TIMESTAMP NOT NULL      -- time refund was requested (UTC)
+  processed_at        TIMESTAMP NULL          -- time provider confirmed result
+
+Indexes:
+  IDX_refunds_payment_id        (payment_id)
+  IDX_refunds_status            (status)
+  IDX_refunds_requested_at      (requested_at)
+
+
+============================================================
+TABLE: webhook_events (optional)
+============================================================
+Description: Optional audit log of raw events from provider webhooks.
+
+Columns:
+  id                  PK, BIGSERIAL           -- auto-increment event id
+  event_type          VARCHAR(50) NOT NULL    -- payment.succeeded, payment.failed, etc.
+  payment_id          VARCHAR(64) NULL        -- may not exist yet when received
+  payload_json        JSONB NOT NULL          -- full request body
+  received_at         TIMESTAMP NOT NULL      -- server receive time (UTC)
+  signature           VARCHAR(256) NULL       -- provider signature / HMAC, if present
+
+Indexes:
+  IDX_webhook_events_payment_id (payment_id)
+  IDX_webhook_events_event_type (event_type)
+  IDX_webhook_events_received   (received_at)
+
+
+# Notes
+# - Use UUIDs or provider-style IDs for payments.id and refunds.id.
+# - For SQL implementations (e.g., PostgreSQL), map JSONB accordingly.
+# - This schema is designed so the current in-memory model in server.js
+#   can be persisted with minimal changes.
