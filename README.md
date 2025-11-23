@@ -62,6 +62,7 @@ npm run dev
 Payment-Service/
   ├── server.js          # Express app with routes + Swagger UI
   ├── package.json       # Dependencies and scripts
+  ├── db_schema.txt/.sql # MySQL database schema
   ├── openapi/
   │   └── openapi.yaml   # OpenAPI 3.0 spec
   └── README.md
