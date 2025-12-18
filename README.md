@@ -19,12 +19,16 @@ It is designed to follow the **API-First** approach with an OpenAPI 3.0 specific
 ## Tech Stack
 
 - **Framework**: Node.js + Express
+- **Database**: MySQL 8.0 (Cloud SQL)
 - **API Docs**: Swagger UI (OpenAPI 3.0 spec)
 - **Language**: JavaScript
+- **Deployment**: Google Cloud Run
 
 ---
 
 ## Setup
+
+### Local Development
 
 1. Install dependencies:
 
@@ -44,6 +48,13 @@ It is designed to follow the **API-First** approach with an OpenAPI 3.0 specific
    http://localhost:4003/api-docs
    ```
 
+### Cloud Deployment
+
+For deploying to Google Cloud Run **with MySQL database**, see:
+- **[DATABASE_SETUP.md](./DATABASE_SETUP.md)** - Complete database integration guide (⭐ RECOMMENDED)
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Basic deployment without database
+- **[QUICKSTART.md](./QUICKSTART.md)** - Quick 3-step deployment guide
+
 ---
 
 ## Development Mode
@@ -59,12 +70,18 @@ npm run dev
 ## Project Structure
 
 ```
-Payment-Service/
-  ├── server.js          # Express app with routes + Swagger UI
-  ├── package.json       # Dependencies and scripts
-  ├── db_schema.txt/.sql # MySQL database schema
+payment-microservice/
+  ├── server.js              # Express app with routes + database integration
+  ├── db.js                  # Database connection and query utilities
+  ├── init-db.js             # Database schema initialization
+  ├── db_schema.sql          # MySQL schema with seed data
+  ├── package.json           # Dependencies and scripts
+  ├── Dockerfile             # Container configuration for Cloud Run
+  ├── deploy-with-db.sh      # Automated deployment script with Cloud SQL
   ├── openapi/
-  │   └── openapi.yaml   # OpenAPI 3.0 spec
+  │   └── openapi.yaml       # OpenAPI 3.0 spec
+  ├── DATABASE_SETUP.md      # Complete database integration guide
+  ├── DEPLOYMENT.md          # Cloud Run deployment guide
   └── README.md
 ```
 
